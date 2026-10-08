@@ -6,6 +6,7 @@ import asyncio
 import os
 import time
 import json
+import uuid
 from typing import Dict, Any, List
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -263,38 +264,49 @@ async def unblock_sensor(sensor_id: str):
 @app.post("/api/attack/inject")
 async def inject_attack(config: AttackSimulationConfig):
     target_node = fog_nodes.get(config.target_fog_node, fog_nodes["FogNode-01"])
+    now_ts = int(time.time())
     
     if config.attack_type == ThreatType.DOS_FLOOD:
-        packets = attack_injector.create_dos_flood(config.target_sensor_id, count=config.intensity, target_fog_node=config.target_fog_node)
+        sensor_id = f"SENS-FLOOD-{now_ts % 1000:03d}"
+        db.unquarantine_device(sensor_id)
+        packets = attack_injector.create_dos_flood(sensor_id, count=config.intensity, target_fog_node=config.target_fog_node)
         target_node.resource_agent.synthetic_cpu_boost = 35.0  # Simulate CPU spike under flood
         for p in packets:
             target_node.ingest_sensor_packet(p)
-        msg = f"Injected DoS Packet Flood ({config.intensity} pkts) targeting {config.target_sensor_id}."
+        msg = f"Injected DoS Packet Flood ({config.intensity} pkts/sec) targeting {config.target_fog_node}."
 
     elif config.attack_type == ThreatType.DATA_TAMPERING:
+        sensor_id = f"SENS-TAMPER-{now_ts % 1000:03d}"
+        db.unquarantine_device(sensor_id)
         pkt = attack_injector.create_tampered_packet(
-            config.target_sensor_id,
+            sensor_id,
             tamper_key=config.tamper_metric or "heart_rate",
-            tamper_value=config.tamper_value or 450.0,
+            tamper_value=config.tamper_value or 480.0,
             target_fog_node=config.target_fog_node
         )
         target_node.ingest_sensor_packet(pkt)
-        msg = f"Injected Data Tampering payload on {config.target_sensor_id}."
+        msg = f"Injected Data Tampering (Heart Rate = {config.tamper_value or 480} BPM) targeting {config.target_fog_node}."
 
     elif config.attack_type == ThreatType.SENSOR_SPOOFING:
+        sensor_id = f"ROGUE_SENSOR_0x{uuid.uuid4().hex[:4].upper()}"
         pkt = attack_injector.create_spoofed_sensor_packet(
-            rogue_sensor_id=config.target_sensor_id,
+            rogue_sensor_id=sensor_id,
             target_fog_node=config.target_fog_node
         )
         target_node.ingest_sensor_packet(pkt)
-        msg = f"Injected Spoofed / Rogue sensor telemetry with ID: {config.target_sensor_id}."
+        msg = f"Injected Rogue Sensor Spoofing ({sensor_id}) without valid Zero-Trust token on {config.target_fog_node}."
 
     elif config.attack_type == ThreatType.REPLAY_ATTACK:
-        dummy_sensor = sensors[0]
+        sensor_id = f"SENS-REPLAY-{now_ts % 1000:03d}"
+        db.unquarantine_device(sensor_id)
+        dummy_patient = PatientProfile("P-999", "Replay Target", 50, "ICU")
+        dummy_sensor = IoMTSensorDevice(sensor_id, SensorType.ECG_HEART_RATE, dummy_patient, crypto, config.target_fog_node)
         fresh_pkt = dummy_sensor.produce_telemetry_packet()
+        target_node.ingest_sensor_packet(fresh_pkt)
+        time.sleep(0.05)
         replay_pkt = attack_injector.create_replay_packet(fresh_pkt)
         target_node.ingest_sensor_packet(replay_pkt)
-        msg = f"Injected Replay Attack with duplicate nonce and stale timestamp."
+        msg = f"Injected Replay Attack with duplicate nonce & stale timestamp on {config.target_fog_node}."
     else:
         raise HTTPException(status_code=400, detail="Invalid attack type.")
 

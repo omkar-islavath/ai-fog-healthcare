@@ -166,9 +166,25 @@ class CyberThreatDetector:
             self.seen_nonces.add(nonce)
             self.nonce_timestamps[nonce] = now
 
-        # Rule 3: Data Tampering / HMAC Integrity Failure
+        # Rule 3: Sensor Identity Spoofing / Rogue Device Injection
+        if not token_valid:
+            alert = SecurityAlert(
+                alert_id=f"SEC_{int(now*1000)}_{sensor_id[-4:]}",
+                threat_type=ThreatType.SENSOR_SPOOFING,
+                severity="HIGH",
+                source_sensor_id=sensor_id,
+                source_ip_mac="192.168.1.240:48810",
+                fog_node_id=fog_node_id,
+                description=f"Rogue / Spoofed sensor detected on {fog_node_id}. Invalid Zero-Trust device token for {sensor_id}.",
+                confidence_score=0.96,
+                mitigation_action="BLOCK_MAC_AND_ISOLATE_PORT",
+                timestamp=now
+            )
+            return True, alert
+
+        # Rule 4: Data Tampering / HMAC Integrity Failure (MitM)
         if not hmac_valid or tamper_detected:
-            reason = "Cryptographic HMAC Failure" if not hmac_valid else "Impossible Physiological Value Injected"
+            reason = "Cryptographic HMAC Failure" if not hmac_valid else f"Impossible Jump (HR={hr} BPM)"
             alert = SecurityAlert(
                 alert_id=f"SEC_{int(now*1000)}_{sensor_id[-4:]}",
                 threat_type=ThreatType.DATA_TAMPERING,
@@ -179,22 +195,6 @@ class CyberThreatDetector:
                 description=f"Data tampering/MitM detected on {sensor_id}. Reason: {reason}.",
                 confidence_score=0.99,
                 mitigation_action="QUARANTINE_SENSOR_AND_ALERT_SECURITY_OP",
-                timestamp=now
-            )
-            return True, alert
-
-        # Rule 4: Sensor Identity Spoofing / Unauthorized Device Token
-        if not token_valid:
-            alert = SecurityAlert(
-                alert_id=f"SEC_{int(now*1000)}_{sensor_id[-4:]}",
-                threat_type=ThreatType.SENSOR_SPOOFING,
-                severity="HIGH",
-                source_sensor_id=sensor_id,
-                source_ip_mac="192.168.1.240:48810",
-                fog_node_id=fog_node_id,
-                description=f"Rogue/Spoofed sensor detected. Invalid Zero-Trust security token for {sensor_id}.",
-                confidence_score=0.96,
-                mitigation_action="BLOCK_MAC_AND_ISOLATE_PORT",
                 timestamp=now
             )
             return True, alert
