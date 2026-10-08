@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureFog Health</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased flex flex-col md:flex-row">
+
+    <!-- Left Sidebar Navigation -->
+    <aside class="w-full md:w-64 bg-slate-900/95 border-r border-slate-800/80 p-4 flex flex-col justify-between shrink-0">
+        <div class="space-y-6">
+            <!-- Brand Logo & Short Title -->
+            <div class="flex items-center space-x-3 px-2">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 text-white text-lg">
+                    <i class="fa-solid fa-shield-heart"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold text-white tracking-wide">SecureFog</h1>
+                    <p class="text-[11px] text-cyan-400 font-medium">Smart Healthcare</p>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="space-y-1.5 text-sm" id="sidebar-nav">
+                <button onclick="switchTab('overview')" class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-medium transition text-left text-slate-300 hover:bg-slate-800 active-tab bg-cyan-600/10 text-cyan-400 border border-cyan-500/30" data-tab="overview">
+                    <i class="fa-solid fa-chart-pie w-5"></i>
+                    <span>Dashboard</span>
+                </button>
+
+                <button onclick="switchTab('patients')" class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-medium transition text-left text-slate-400 hover:bg-slate-800 hover:text-slate-200" data-tab="patients">
+                    <i class="fa-solid fa-hospital-user w-5"></i>
+                    <span>Patient Vitals</span>
+                </button>
+
+                <button onclick="switchTab('security')" class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-medium transition text-left text-slate-400 hover:bg-slate-800 hover:text-slate-200" data-tab="security">
+                    <i class="fa-solid fa-shield-halved w-5"></i>
+                    <span>Security & Threat Lab</span>
+                </button>
+
+                <button onclick="switchTab('fog-cluster')" class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-medium transition text-left text-slate-400 hover:bg-slate-800 hover:text-slate-200" data-tab="fog-cluster">
+                    <i class="fa-solid fa-server w-5"></i>
+                    <span>Fog Node Cluster</span>
+                </button>
+
+                <button onclick="switchTab('cloud-sync')" class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-medium transition text-left text-slate-400 hover:bg-slate-800 hover:text-slate-200" data-tab="cloud-sync">
+                    <i class="fa-solid fa-cloud w-5"></i>
+                    <span>Cloud & Privacy</span>
+                </button>
+
+                <button onclick="switchTab('agents')" class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-medium transition text-left text-slate-400 hover:bg-slate-800 hover:text-slate-200" data-tab="agents">
+                    <i class="fa-solid fa-network-wired w-5"></i>
+                    <span>Multi-Agent Logs</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- Connection Status & Quick Action -->
+        <div class="pt-4 border-t border-slate-800/80 space-y-3">
+            <div class="flex items-center justify-between text-xs px-2">
+                <span class="text-slate-400">Stream Status</span>
+                <span class="flex items-center space-x-1.5 text-emerald-400 font-semibold" id="ws-status">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Live</span>
+                </span>
+            </div>
+            <button onclick="forceCloudSync()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 transition flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-cloud-arrow-up text-cyan-400"></i>
+                <span>Sync to Cloud</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 min-w-0 overflow-y-auto max-h-screen bg-slate-950 p-4 md:p-8 space-y-6">
+
+        <!-- Global Toast Notification Banner -->
+        <div id="global-notification-toast" class="hidden transition-all duration-300 p-4 rounded-xl shadow-xl flex items-center justify-between border"></div>
+
+        <!-- ================= PAGE 1: DASHBOARD OVERVIEW ================= -->
+        <section id="tab-overview" class="tab-content space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white">System Dashboard</h2>
+                    <p class="text-xs text-slate-400">Real-time IoMT Fog Computing and Security Status</p>
+                </div>
+                <div class="text-xs text-slate-400 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg">
+                    <span>Cluster Health: <strong class="text-emerald-400">OPTIMAL</strong></span>
+                </div>
+            </div>
+
+            <!-- Top KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-xl shadow-md">
+                    <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                        <span>Fog Nodes</span>
+                        <i class="fa-solid fa-server text-cyan-400"></i>
+                    </div>
+                    <div class="text-2xl font-bold text-slate-100 mt-2" id="kpi-fog-count">3 Active</div>
+                    <div class="text-xs text-slate-400 mt-1">Adaptive Computing Active</div>
+                </div>
+
+                <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-xl shadow-md">
+                    <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                        <span>Patients</span>
+                        <i class="fa-solid fa-hospital-user text-emerald-400"></i>
+                    </div>
+                    <div class="text-2xl font-bold text-slate-100 mt-2" id="kpi-patients-count">4 Monitored</div>
+                    <div class="text-xs text-slate-400 mt-1">AI Triage Stream Active</div>
+                </div>
+
+                <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-xl shadow-md">
+                    <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                        <span>Threats Blocked</span>
+                        <i class="fa-solid fa-shield-virus text-red-400"></i>
+                    </div>
+                    <div class="text-2xl font-bold text-red-400 mt-2" id="kpi-threats-count">0 Blocked</div>
+                    <div class="text-xs text-slate-400 mt-1" id="kpi-quarantine-count">0 Quarantined</div>
+                </div>
+
+                <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-xl shadow-md">
+                    <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                        <span>Cloud Privacy</span>
+                        <i class="fa-solid fa-lock text-indigo-400"></i>
+                    </div>
+                    <div class="text-2xl font-bold text-indigo-300 mt-2" id="kpi-cloud-records">Masked</div>
+                    <div class="text-xs text-slate-400 mt-1">HIPAA SHA-256 Hash</div>
+                </div>
+            </div>
+
+            <!-- High-Level Split View -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Live Telemetry Quick Preview -->
+                <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-xl space-y-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-heart-pulse text-cyan-400"></i>
+                            <h3 class="text-sm font-bold text-slate-200">Live Physiological Waveform</h3>
+                        </div>
+                        <!-- Patient Switcher Dropdown -->
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[11px] text-slate-400">Patient:</span>
+                            <select id="chart-patient-select" onchange="onChartPatientChange(this.value)" class="bg-slate-950 border border-slate-700 text-xs text-cyan-400 font-semibold px-2.5 py-1 rounded-lg focus:outline-none focus:border-cyan-500">
+                                <option value="P-101">P-101 (Sarah Jenkins - ICU)</option>
+                                <option value="P-102">P-102 (Rajesh Kumar - Cardiology)</option>
+                                <option value="P-103">P-103 (Elena Rostova - Pulmonary)</option>
+                                <option value="P-104">P-104 (David Miller - General)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="overviewChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Recent Incident & Emergency Feed -->
+                <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-xl space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                        <h3 class="text-sm font-bold text-slate-200 flex items-center space-x-2">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
+                            <span>Active System & Clinical Alerts</span>
+                        </h3>
+                    </div>
+                    <div id="overview-alerts-list" class="space-y-2 max-h-64 overflow-y-auto pr-1 text-xs">
+                        <p class="text-slate-500 italic text-center py-8">No critical incidents. All vitals and security streams nominal.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ================= PAGE 2: PATIENT VITALS ================= -->
+        <section id="tab-patients" class="tab-content hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Patient Monitoring</h2>
+                    <p class="text-xs text-slate-400">Real-time multi-parameter physiological vitals processed by local Decision Agents</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleModal('patient-modal', true)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 shadow-md shadow-emerald-600/30 transition">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>Admit New Patient</span>
+                    </button>
+                    <span class="text-xs text-slate-400 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg font-mono">
+                        Triage: Random Forest + Isolation Forest
+                    </span>
+                </div>
+            </div>
+
+            <!-- Patient Vitals Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="patient-cards-container">
+                <!-- Dynamic cards populated by JS -->
+            </div>
+        </section>
+
+        <!-- Admit Patient Modal -->
+        <div id="patient-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h3 class="text-base font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-hospital-user text-emerald-400"></i>
+                        <span>Admit New Patient to Fog Gateway</span>
+                    </h3>
+                    <button onclick="toggleModal('patient-modal', false)" class="text-slate-400 hover:text-white text-lg">&times;</button>
+                </div>
+
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="block text-slate-400 font-semibold mb-1">Patient Full Name</label>
+                        <input type="text" id="new-p-name" placeholder="e.g. Robert Watson" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-slate-400 font-semibold mb-1">Age</label>
+                            <input type="number" id="new-p-age" value="52" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 font-semibold mb-1">Department</label>
+                            <select id="new-p-dept" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200">
+                                <option value="ICU">ICU</option>
+                                <option value="Cardiology Ward">Cardiology Ward</option>
+                                <option value="Pulmonary Ward">Pulmonary Ward</option>
+                                <option value="General Ward">General Ward</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-slate-400 font-semibold mb-1">Baseline Heart Rate</label>
+                            <input type="number" id="new-p-hr" value="76" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 font-semibold mb-1">Baseline SpO2 (%)</label>
+                            <input type="number" id="new-p-spo2" value="98" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-semibold mb-1">Clinical Tendency</label>
+                        <select id="new-p-tendency" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200">
+                            <option value="STABLE">Stable</option>
+                            <option value="ARRHYTHMIA">Arrhythmia / Tachycardia</option>
+                            <option value="HYPOXIA">Hypoxia / Oxygen Drop</option>
+                            <option value="HYPERTENSIVE">Hypertension / BP Spikes</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-semibold mb-1">Target Fog Node Gateway</label>
+                        <select id="new-p-fognode" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200">
+                            <option value="FogNode-01">FogNode-01 (ICU Gateway)</option>
+                            <option value="FogNode-02">FogNode-02 (Cardiology Gateway)</option>
+                            <option value="FogNode-03">FogNode-03 (Outpatient Gateway)</option>
+                        </select>
+                    </div>
+
+                    <button onclick="submitNewPatient()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg shadow-lg shadow-emerald-600/30 transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Register & Start Live Stream</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ================= PAGE 3: SECURITY & THREAT LAB ================= -->
+        <section id="tab-security" class="tab-content hidden space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Security & Threat Lab</h2>
+                    <p class="text-xs text-slate-400">Zero-Trust Authentication, AI Intrusion Detection & Attack Simulation</p>
+                </div>
+                <div class="text-xs text-slate-400 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg">
+                    <span>Engine: <strong class="text-red-400">Zero-Trust + HMAC-SHA256</strong></span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Attack Simulator Form -->
+                <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-xl space-y-4">
+                    <h3 class="text-sm font-bold text-red-400 flex items-center space-x-2">
+                        <i class="fa-solid fa-crosshairs"></i>
+                        <span>Cyber-Attack Injection Console</span>
+                    </h3>
+                    <p class="text-xs text-slate-400">
+                        Select a threat vector to simulate network attacks against the Fog Computing Layer.
+                    </p>
+
+                    <div class="space-y-3 text-xs">
+                        <div>
+                            <label class="block text-slate-400 font-medium mb-1">Threat Type</label>
+                            <select id="attack-type-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200">
+                                <option value="DOS_FLOOD">1. DoS / Volumetric Packet Flood</option>
+                                <option value="DATA_TAMPERING">2. Data Tampering / MitM Payload Alteration</option>
+                                <option value="SENSOR_SPOOFING">3. Rogue Sensor Spoofing (Invalid Token)</option>
+                                <option value="REPLAY_ATTACK">4. Replay Attack (Duplicate Nonce & Stale Time)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-slate-400 font-medium mb-1">Target Fog Node</label>
+                            <select id="attack-node-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200">
+                                <option value="FogNode-01">FogNode-01 (ICU Gateway)</option>
+                                <option value="FogNode-02">FogNode-02 (Cardiology Gateway)</option>
+                                <option value="FogNode-03">FogNode-03 (Outpatient Gateway)</option>
+                            </select>
+                        </div>
+
+                        <div id="tamper-params" class="hidden space-y-2 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+                            <label class="block text-slate-400 text-xs">Tampered Heart Rate (BPM)</label>
+                            <input type="number" id="tamper-val" value="480" class="w-full bg-slate-900 border border-slate-700 px-3 py-1.5 rounded text-slate-200 text-xs">
+                        </div>
+
+                        <button onclick="launchAttackSimulation()" class="w-full bg-red-600 hover:bg-red-500 transition text-white font-bold py-2.5 rounded-lg shadow-lg shadow-red-600/30 flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-biohazard"></i>
+                            <span>Simulate Threat Vector</span>
+                        </button>
+                    </div>
+
+                    <div id="attack-feedback-box" class="hidden p-3 rounded-lg text-xs border"></div>
+                </div>
+
+                <!-- Dynamic Quarantine & Intercepted Incidents -->
+                <div class="space-y-4">
+                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-xl space-y-3">
+                        <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                            <h3 class="text-sm font-bold text-slate-200 flex items-center space-x-2">
+                                <i class="fa-solid fa-ban text-red-400"></i>
+                                <span>Quarantined Rogue Devices</span>
+                            </h3>
+                            <span class="text-xs text-slate-400" id="quarantine-count-badge">0 Devices</span>
+                        </div>
+                        <div id="quarantined-list" class="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs">
+                            <p class="text-slate-500 italic text-center py-4">No active quarantines. Network secure.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-xl space-y-3">
+                        <h3 class="text-sm font-bold text-slate-200 flex items-center space-x-2">
+                            <i class="fa-solid fa-shield-virus text-amber-400"></i>
+                            <span>Recent Security Threat Logs</span>
+                        </h3>
+                        <div id="security-alerts-list" class="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs">
+                            <p class="text-slate-500 italic text-center py-4">No security threats intercepted yet.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ================= PAGE 4: FOG NODE CLUSTER ================= -->
+        <section id="tab-fog-cluster" class="tab-content hidden space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Fog Node Cluster & Adaptive Scaling</h2>
+                    <p class="text-xs text-slate-400">Dynamic resource balancing, adaptive sampling rate (Hz), and peer-to-peer load offloading</p>
+                </div>
+            </div>
+
+            <!-- Fog Nodes Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="fog-nodes-container">
+                <!-- Dynamic cards populated by JS -->
+            </div>
+        </section>
+
+
+        <!-- ================= PAGE 5: CLOUD & PRIVACY ================= -->
+        <section id="tab-cloud-sync" class="tab-content hidden space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Cloud Data Center & Privacy Protection</h2>
+                    <p class="text-xs text-slate-400">HIPAA Safe Harbor SHA-256 pseudonymized telemetry storage and global policies</p>
+                </div>
+                <button onclick="forceCloudSync()" class="bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold px-4 py-2 rounded-lg text-white shadow-md shadow-indigo-600/30">
+                    <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Trigger Batch Sync
+                </button>
+            </div>
+
+            <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-xl space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div class="bg-slate-950/70 p-3.5 rounded-lg border border-slate-800">
+                        <div class="text-slate-400">Cloud Repository Region</div>
+                        <div class="text-sm font-bold text-indigo-300 mt-1">Central Cloud (Global Tier)</div>
+                    </div>
+                    <div class="bg-slate-950/70 p-3.5 rounded-lg border border-slate-800">
+                        <div class="text-slate-400">Privacy Standard</div>
+                        <div class="text-sm font-bold text-emerald-400 mt-1">HIPAA Salted SHA-256 + Age Grouping</div>
+                    </div>
+                </div>
+
+                <h3 class="text-xs uppercase font-bold text-slate-300 pt-2">Recent Anonymized Records Stored in Cloud</h3>
+                <div id="cloud-records-table" class="bg-slate-950 border border-slate-800/80 rounded-lg overflow-hidden text-xs">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-900 text-slate-400 border-b border-slate-800">
+                            <tr>
+                                <th class="p-2.5">Sync ID</th>
+                                <th class="p-2.5">Origin Fog Node</th>
+                                <th class="p-2.5">Anonymized Hash</th>
+                                <th class="p-2.5">Triage Summary</th>
+                                <th class="p-2.5">Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cloud-records-body" class="divide-y divide-slate-900 text-slate-300">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ================= PAGE 6: MULTI-AGENT LOGS ================= -->
+        <section id="tab-agents" class="tab-content hidden space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Multi-Agent Communication Bus</h2>
+                    <p class="text-xs text-slate-400">Real-time publish/subscribe message exchange between all autonomous software agents</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-xl space-y-3">
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                    <span>Live Message Stream</span>
+                    <span class="font-mono text-cyan-400">Async Pub/Sub</span>
+                </div>
+                <div id="agent-bus-logs" class="bg-slate-950 border border-slate-800/80 p-4 rounded-lg font-mono text-xs text-slate-300 overflow-y-auto max-h-[500px] space-y-2">
+                    <div class="text-cyan-400">[System] Multi-Agent Bus Initialized. Agents active.</div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Custom JavaScript -->
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

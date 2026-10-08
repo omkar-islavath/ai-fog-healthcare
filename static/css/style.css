@@ -1,0 +1,48 @@
+/* Custom Styles for Fog Healthcare Dashboard */
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
+
+/* Glassmorphic card styling */
+.glass-card {
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+/* Pulsing emergency animation */
+@keyframes emergencyPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+        border-color: rgba(239, 68, 68, 0.8);
+    }
+    50% {
+        box-shadow: 0 0 20px 4px rgba(239, 68, 68, 0.3);
+        border-color: rgba(239, 68, 68, 1);
+    }
+}
+
+.emergency-pulse {
+    animation: emergencyPulse 1.5s infinite;
+}
+
+/* Gauge progress bar smooth transitions */
+.progress-bar-fill {
+    transition: width 0.4s ease-in-out;
+}
